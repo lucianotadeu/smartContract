@@ -1,0 +1,60 @@
+pragma solidity ^0.5.8;
+
+contract BancoVarejo {
+    uint8 private contaCliente;
+    mapping (address => uint) private balances;
+    address public correntista;
+
+  // Log do deposito efetuado (endereco e quantia)
+    event LogDepositMade(address indexed accountAddress, uint amount);
+
+    // Constructor é um método "payable", que pode receber o deposito inicial de 30,
+    // necessario para remunerar os 3 primeiros clientes
+    constructor() public payable {
+        require(msg.value == 30 ether, "30 ether initial funding required");
+        /* Determina variável correntista ao criador do contrato */
+        correntista = msg.sender;
+        contaCliente = 0;
+    }
+
+    /// @notice abre conta do cliente no banco, 
+    /// concedendo aos primeiros 3 clientes 10 ether de remuneração
+    /// @return retorna balance do cliente após abertura de conta do cliente no banco
+    function enroll() public returns (uint) {
+        if (contaCliente < 3) {
+            contaCliente++;
+            balances[msg.sender] = 10 ether;
+        }
+        return balances[msg.sender];
+    }
+
+    /// @notice deposita ether no banco, onde requer metodo "payable"
+    /// @return retorna balance do cliente após o depósito ser efetivado
+    function deposit() public payable returns (uint) {
+        balances[msg.sender] += msg.value;
+        emit LogDepositMade(msg.sender, msg.value);
+        return balances[msg.sender];
+    }
+
+    /// @notice faz retirada do ether da conta do banco
+    /// @return retorna balance remanescente da conta do cliente
+    function withdraw(uint withdrawAmount) public returns (uint remainingBal) {
+        // Checa se há balance suficiente disponível, senão retorna apenas o balance
+        if (withdrawAmount <= balances[msg.sender]) {
+            balances[msg.sender] -= withdrawAmount;
+            msg.sender.transfer(withdrawAmount);
+        }
+        return balances[msg.sender];
+    }
+
+    /// @notice Apenas apresenta balance da conta requisitante, como "constant"
+    /// @return retorna  balance do correntista
+    function balance() public view returns (uint) {
+        return balances[msg.sender];
+    }
+
+    /// @return retorna o balance do smart contract do BancoVarejo
+    function depositsBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}
